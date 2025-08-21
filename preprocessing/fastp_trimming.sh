@@ -1,21 +1,20 @@
 #!/bin/bash
-
-source activate base
-conda init
-source ~/.bashrc
+eval "$(conda shell.bash hook)"
 
 # variables for conda environment
 conda_env_dir_preprocessing="/home/povp/conda_envs/WGS_preprocessing"
-conda_env_dir_R="home/povp/conda_envs/R_v4_env"
+conda_env_dir_R="/home/povp/conda_envs/R_v4_env"
 
 # paths for data storage
-path_input="/home/povp/seq_data/WGS/Illumina_IAB/"
 path_input="/home/povp/seq_data/WGS/sub_data_optimalizace"
 path_output="/home/povp/Projects/kompas/trimmed/"
 path_project_dir="/home/povp/Projects/kompas/"
 
 # activate environment
 conda activate ${conda_env_dir_preprocessing}
+
+# info for tools and versions txt
+echo "fastp_trimming.sh:" >> ${path_project_dir}/run_info/tools.txt
 
 # make output dirs
 mkdir ${path_output}
@@ -37,10 +36,16 @@ find ${path_input} -type f -name "*_R1_001.fastq.gz" | sed 's/_R1_001.fastq.gz//
 
 cd ${path_output}
 
+## track version
+fastp --version >> ${path_project_dir}/run_info/tools.txt
+
 # FASTQC+MULTIQC for trimmed report
 fastqc *.fastq.gz -o ${path_output}/reports/ -quiet -t 20
 cd ${path_output}/reports/
 multiqc . --interactive
+## track version
+fastqc --version >> ${path_project_dir}/run_info/tools.txt
+multiqc --version >> ${path_project_dir}/run_info/tools.txt
 
 # The final counts statistics
 ## Output file
@@ -48,6 +53,8 @@ outfile=${path_project_dir}/run_info/read_counts_summary.txt
 infile=${path_output}/reports/multiqc_data/multiqc_general_stats.txt
 
 python3 counts_summary.py ${infile} ${outfile} 2
+## track version
+python --version >> ${path_project_dir}/run_info/tools.txt
 
 # copy the summaries to the run_info file
 cp multiqc_report.html ${path_project_dir}/run_info/trimmed_multiqc_report.html

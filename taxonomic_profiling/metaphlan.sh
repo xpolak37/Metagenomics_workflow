@@ -1,54 +1,61 @@
 #!/bin/bash
+eval "$(conda shell.bash hook)"
 
-# Define the list of sample IDs
-SAMPLES=(
-#   "S24-137-KA14"
-#   "S24-137-KA15"
-   "S24-137-KA1MOCK"
-#   "S24-137-KA20"
-#   "S24-137-KA21"
-#   "S24-137-KA88"
-#   "S24-137-KA98"
-)
+# variables for conda environment
+conda_env_dir_metaphlan="/home/povp/conda_envs/WGS"
 
 # Define other parameters
-export MAX_JOBS=5  # Number of parallel jobs to run
-export PATH_TO_DATA="/home/povp/WGS_lane1/subsampled_data"
+export n_parallel_jobs=5
+export path_input="/home/povp/Projects/kompas/decontaminated/human_phix/"
+export path_output="/home/povp/Projects/kompas/metaphlan/"
+export path_project_dir="/home/povp/Projects/kompas/"
+export TMPDIR=/home/povp/tmp
 
 # Tool specific variables
-export BOWTIE_DB_PATH="metaphlan_dbs"
-export BOWTIE_DB_FILE=$(cat $BOWTIE_DB_PATH/mpa_latest)
-export MP_VERSION=vJun23
-export NU_THREADS=5
-export JO_THREADS=8
+# Here, we are using mpa_vJan25_CHOCOPhlAnSGB_202503
+export metaphlan_bowtie_db="metaphlan_dbs"
+export BOWTIE_DB_FILE=$(cat $metaphlan_bowtie_db/mpa_latest)
+export MP_VERSION="vJun25"
+export metaphlan_nproc=10
+
+conda activate ${conda_env_dir_metaphlan}
+
+# info for tools and versions txt
+echo "metaphlan.sh:" >> ${path_project_dir}/run_info/tools.txt
+
+mkdir ${path_output}
+mkdir ${path_output}/bowtie_output/
+mkdir ${path_output}/sam_output/
 
 run_metaphlan() {
+        sample_path=$1
+        sample_name=$(basename ${sample_path})
+        f1=${sample_path}_R1_trimmed_cleaned.fastq.gz
+        f2=${sample_path}_R2_trimmed_cleaned.fastq.gz
 
-        SAMPLEID=$1
-        SAMPLEFOLDER=${PATH_TO_DATA}/${SAMPLEID}
-
-        echo $SAMPLEFOLDER
-
-
-
-                                  --input_type fastq \
-                                  --bowtie2out $SAMPLEFOLDER/metagenome.bowtie2.bz2 \
-                                  --db_dir $BOWTIE_DB_PATH \
-                                  -x $BOWTIE_DB_FILE \
-                                  --profile_vsc \
-                                  --nproc $NU_THREADS \
-                                  --stat_q 0.05 \
-                                  --min_cu_len 1000 \
-                                  --pres_th 0 \
-                                  --unclassified_estimation \
-                                  -o ${SAMPLEFOLDER}/${SAMPLEID}_${BOWTIE_DB_FILE}.txt \
-                                  --vsc_out ${SAMPLEFOLDER}/${SAMPLEID}_mpa_${MP_VERSION}_vsc_profile.txt
-                fi
-        fi
+        metaphlan ${f1},${f2} \
+                --input_type fastq \
+                --mapout ${path_output}/bowtie_output/${sample_name}.bowtie2.bz2 \
+                --samout ${path_output}/sam_output/${sample_name}.sam \
+                --db_dir $metaphlan_bowtie_db \
+                -x "latest" \
+                -t "rel_ab_w_read_stats" \
+                --profile_vsc \
+                --nproc $metaphlan_nproc \
+                --pres_th 0 \
+                -o ${path_output}/${sample_name}_map${MP_VERSION}.tsv \
+                --vsc_out ${path_output}/${sample_name}_${MP_VERSION}_vsc_profile.tsv \
+                --tmp_dir ${TMPDIR}
 
 }
 
 export -f run_metaphlan
+
 #Parallel execution of MetaPhlan for each sample
-echo ${SAMPLES[@]}
-echo "${SAMPLES[@]}" | tr ' ' '\n' | parallel -j "$MAX_JOBS" run_metaphlan
+find ${path_input} -type f -name "*_R1_trimmed_cleaned.fastq.gz" | sed 's/_R1_trimmed_cleaned.fastq.gz//' | parallel -j ${n_parallel_jobs} run_metaphlan
+
+## track version
+metaphlan --version >> ${path_project_dir}/run_info/tools.txt
+
+## merge all samples into one table, save this table for counts as well as relative abundances
+bash metaphlan_postprocessing.sh

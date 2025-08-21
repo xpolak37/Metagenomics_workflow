@@ -1,31 +1,38 @@
 #!/bin/bash
-
-source activate base
-conda init
-source ~/.bashrc
+eval "$(conda shell.bash hook)"
 
 # variables for conda environment
 conda_env_dir_quality="/home/povp/conda_envs/quality"
-conda_env_dir_blast="/home/povp/conda_envs/blast"
-conda_env_dir_R="home/povp/conda_envs/R_v4_env"
+conda_env_dir_blast="/home/povp/conda_envs/blast_env"
+conda_env_dir_R="/home/povp/conda_envs/R_v4_env"
 
 # paths for data storage
 path_input="/home/povp/seq_data/WGS/sub_data_optimalizace"
-path_output="/home/povp/Projects/kompas/quality_raw2/"
+path_output="/home/povp/Projects/kompas/quality_raw/"
 path_project_dir="/home/povp/Projects/kompas/"
 
 # activate conda environment 
 conda activate ${conda_env_dir_quality}
 
+# info for tools and versions txt
+echo "main_qc.sh:" >> ${path_project_dir}/run_info/tools.txt
+
+# making dirs
 mkdir ${path_output}
-
 cd ${path_input}
-find . -type f -name "*.fastq.gz" | xargs fastqc -o "${path_output}" -quiet -t 20
 
+# run fastqc
+find . -type f -name "*.fastq.gz" | xargs fastqc -o "${path_output}" -quiet -t 20
+## track version
+fastqc --version >> ${path_project_dir}/run_info/tools.txt
+
+# run multiqc
 cd ${path_output}
 multiqc . --interactive
+## track version
+multiqc --version >> ${path_project_dir}/run_info/tools.txt
 
-cd multiqc_output
+cd multiqc_data
 
 # QUICK SUMMARY
 ## Adapter content
@@ -36,6 +43,8 @@ awk 'NR>1 {print $3}' fastqc_adapter_content_plot.txt | sort -u >> custom_summar
 conda activate ${conda_env_dir_R}
 echo "SEQUENCING DEPTH SUMMARY" >> custom_summary.txt
 awk 'NR>1 {print $NF*1000000}' multiqc_general_stats.txt | Rscript -e 'x <- scan("stdin", quiet=TRUE); summary(x)' >> custom_summary.txt
+### track version
+R --version | head -n 1 >> ${path_project_dir}/run_info/tools.txt
 
 ## overrepresented sequences
 conda activate ${conda_env_dir_blast}
@@ -45,6 +54,8 @@ awk 'NR>1 {print ">seq" NR-1 "\n" $1}' fastqc_top_overrepresented_sequences_tabl
 
 ### run blastn
 blastn -query overrepresented.fasta -db nt -remote -out overrepresented_results.txt -outfmt 6 
+### track version
+blastn -version | head -n 1 >> ${path_project_dir}/run_info/tools.txt
 
 ### filter results
 awk '{
@@ -102,7 +113,6 @@ outfile=${path_project_dir}/run_info/read_counts_summary.txt
 
 # Header
 echo -e "Sample\tRaw\tTrimmed\tDecontaminated" > ${outfile}
-
 awk 'NR>1 {printf "%s\t%.0f\n", $1, $7*1000000}' ${path_output}/multiqc_data/multiqc_general_stats.txt >> ${outfile}
 
 # copy the summaries to the run_info file

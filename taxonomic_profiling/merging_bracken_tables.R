@@ -43,5 +43,7 @@ merged_df_counts[is.na(merged_df_counts)] <- 0
 merged_df_abundances[is.na(merged_df_abundances)] <- 0
 
 # Write output
-write.table(merged_df_counts, file.path(output_file,"BRACKEN_counts.tsv"),sep = "\t")
-write.table(merged_df_abundances, file.path(output_file,"BRACKEN_abundances.tsv"),sep = "\t")
+write.table(merged_df_counts, file.path(output_file,"BRACKEN_counts.tsv"),
+            sep = "\t",row.names = FALSE,quote = FALSE)
+write.table(merged_df_abundances, file.path(output_file,"BRACKEN_abundances.tsv"),
+            sep = "\t",row.names = FALSE,quote = FALSE)
