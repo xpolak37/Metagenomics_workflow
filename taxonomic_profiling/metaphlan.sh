@@ -13,8 +13,8 @@ export TMPDIR=/home/povp/tmp
 
 # Tool specific variables
 # Here, we are using mpa_vJan25_CHOCOPhlAnSGB_202503
-export metaphlan_bowtie_db="metaphlan_dbs"
-export BOWTIE_DB_FILE=$(cat $metaphlan_bowtie_db/mpa_latest)
+export metaphlan_bowtie_db=${path_scripts}/taxonomic_profiling/metaphlan_dbs/
+export BOWTIE_DB_FILE=$(cat ${metaphlan_bowtie_db}/mpa_latest)
 export MP_VERSION="vJun25"
 export metaphlan_nproc=10
 
@@ -45,7 +45,8 @@ run_metaphlan() {
                 --pres_th 0 \
                 -o ${path_output}/${sample_name}_map${MP_VERSION}.tsv \
                 --vsc_out ${path_output}/${sample_name}_${MP_VERSION}_vsc_profile.tsv \
-                --tmp_dir ${TMPDIR}
+                --tmp_dir ${TMPDIR} \
+                --verbose
 
 }
 

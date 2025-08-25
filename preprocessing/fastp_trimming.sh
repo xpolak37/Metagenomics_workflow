@@ -52,10 +52,10 @@ multiqc --version >> ${path_project_dir}/run_info/tools.txt
 outfile=${path_project_dir}/run_info/read_counts_summary.txt
 infile=${path_output}/reports/multiqc_data/multiqc_general_stats.txt
 
-cd ${path_scripts}
+cd ${path_scripts}/preprocessing
 python3 counts_summary.py ${infile} ${outfile} 2
 ## track version
 python --version >> ${path_project_dir}/run_info/tools.txt
 
 # copy the summaries to the run_info file
-cp multiqc_report.html ${path_project_dir}/run_info/trimmed_multiqc_report.html
+cp ${path_output}/reports/multiqc_report.html ${path_project_dir}/run_info/trimmed_multiqc_report.html

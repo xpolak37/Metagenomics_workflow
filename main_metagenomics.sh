@@ -72,9 +72,14 @@ fi
 
 # Taxonomic_profiling
 if [[ "${perform_taxprofiling}" == "TRUE" ]]; then
+    if [[ "$perform_metaphlan" == "FALSE" && "$perform_kraken" == "FALSE" ]]; then
+        perform_metaphlan=TRUE
+    fi
+
     cd taxonomic_profiling
+    
     if [[ "${perform_metaphlan}" == "TRUE" ]]; then
-        echo "Running M etaphlan4 for tax profiling..."
+        echo "Running Metaphlan4 for tax profiling..."
         bash metaphlan.sh
         echo Done
     fi
