@@ -63,6 +63,8 @@ echo -e "Sample\tfastqc-total_sequences" > ${helper_outfile}
 
 # read count
 ls ${path_output}/human_phix/*.fastq.gz | parallel -j 8 'echo -e "$(basename {})\t$(gzip -cd {} | wc -l | awk "{print \$1/4}")"' >> ${helper_outfile}
+
+cd ${path_scripts}
 python3 counts_summary.py ${helper_outfile} ${outfile} 3
 ## track version
 python --version >> ${path_project_dir}/run_info/tools.txt
