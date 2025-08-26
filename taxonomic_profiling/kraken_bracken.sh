@@ -41,7 +41,7 @@ nextflow run nf-core/taxprofiler \
 --run_bracken
 
 ## track version
-cat ${path_output}/kraken_output/pipeline_infonf_core_taxprofiler_software_mqc_versions.yml >> ${path_project_dir}/run_info/tools.txt
+cat ${path_output}/kraken_output/pipeline_info/nf_core_taxprofiler_software_mqc_versions.yml >> ${path_project_dir}/run_info/tools.txt
 
 # copy the report to run_info
 cp ${path_output}/kraken_output/multiqc/multiqc_report.html ${path_project_dir}/run_info/bracken_multiqc_report.html

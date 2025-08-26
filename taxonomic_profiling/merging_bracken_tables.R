@@ -1,5 +1,5 @@
-library(data.table)
-library(dplyr)
+suppressMessages(suppressWarnings({library(data.table)
+library(dplyr)}))
 
 # Get command-line arguments (excluding default R arguments)
 args <- commandArgs(trailingOnly = TRUE)

@@ -74,7 +74,7 @@ def main( ):
         print('merge_metaphlan_tables: output file "{}" exists, specify the --overwrite param to ovrewrite it!'.format(args.o))
         return
 
-    merge(args.aistms, open(args.o, 'w') if args.o else sys.stdout, args.gtdb_profiles,col_type)
+    merge(args.aistms, open(args.o, 'w') if args.o else sys.stdout, args.gtdb_profiles,args.col_type)
 
 
 if __name__ == '__main__':

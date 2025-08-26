@@ -7,7 +7,7 @@ conda_env_dir_blast="/home/povp/conda_envs/blast_env"
 conda_env_dir_R="/home/povp/conda_envs/R_v4_env"
 
 # paths for data storage
-path_input="/home/povp/seq_data/WGS/sub_data_optimalizace"
+path_input="/home/povp/seq_data/WGS/Illumina_IAB"
 path_output="/home/povp/Projects/kompas/quality_raw/"
 path_project_dir="/home/povp/Projects/kompas/"
 
@@ -22,7 +22,9 @@ mkdir ${path_output}
 cd ${path_input}
 
 # run fastqc
-find . -type f -name "*.fastq.gz" | xargs fastqc -o "${path_output}" -quiet -t 20
+find ${path_input} -type f -name "*.fastq.gz" | parallel -j 10 "fastqc -o "${path_output}" -quiet -t 5"
+#find . -type f -name "*.fastq.gz" | xargs fastqc -o "${path_output}" -quiet -t 20
+
 ## track version
 fastqc --version >> ${path_project_dir}/run_info/tools.txt
 
@@ -45,6 +47,10 @@ echo "SEQUENCING DEPTH SUMMARY" >> custom_summary.txt
 awk 'NR>1 {print $NF*1000000}' multiqc_general_stats.txt | Rscript -e 'x <- scan("stdin", quiet=TRUE); summary(x)' >> custom_summary.txt
 ### track version
 R --version | head -n 1 >> ${path_project_dir}/run_info/tools.txt
+
+## LOW SEQUENCING DEPTH SAMPLES
+echo "SAMPLES BELOW 1M:" >> custom_summary.txt
+awk 'NR > 1 && $2 < 1000000' ${path_project_dir}/run_info/read_counts_summary.txt >> custom_summary.txt
 
 ## overrepresented sequences
 conda activate ${conda_env_dir_blast}
@@ -99,13 +105,13 @@ BEGIN {
         # sequence line
         print $0
     }
-}' overrepresented.fasta > overrepresented.fasta
+}' overrepresented.fasta > overrepresented_named.fasta
 
 echo "OVERREPRESENTED SEQUENCES:" >> custom_summary.txt
-cat overrepresented.fasta >> custom_summary.txt
+cat overrepresented_named.fasta >> custom_summary.txt
 
 ### remove all redundant files
-rm overrepresented.fasta mapping.txt best_hits.txt overrepresented_results.txt
+rm overrepresented.fasta overrepresented_named.fasta mapping.txt best_hits.txt overrepresented_results.txt
 
 # The final counts statistics
 ## Output file

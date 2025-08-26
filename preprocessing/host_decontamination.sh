@@ -1,6 +1,8 @@
 #!/bin/bash
 eval "$(conda shell.bash hook)"
 
+keep_intermediate=FALSE
+
 # variables for conda environment
 conda_env_dir_preprocessing="/home/povp/conda_envs/WGS_preprocessing"
 
@@ -37,6 +39,11 @@ find ${path_input} -type f -name "*_R1_trimmed.fastq.gz" | sed 's/_R1_trimmed.fa
 --output ${path_output}/human/ \
 --threads 5"
 
+# REMOVE FASTP TRIMMING RESULTS
+if [[ "${keep_intermediate}" == "FALSE" ]]; then
+    rm -r ${path_project_dir}/trimmed
+fi
+
 # phix decontamination
 find ${path_output}/human/ -type f -name "*_R1_trimmed.clean_1.fastq.gz" | sed 's/_R1_trimmed.clean_1.fastq.gz//' | parallel -j 10 "hostile clean \
 --fastq1 {}_R1_trimmed.clean_1.fastq.gz \
@@ -47,6 +54,11 @@ find ${path_output}/human/ -type f -name "*_R1_trimmed.clean_1.fastq.gz" | sed '
 
 ## track version
 echo "hostile" $(hostile --version) >> ${path_project_dir}/run_info/tools.txt
+
+# REMOVE HUMAN DECONTAMINATION RESULTS
+if [[ "${keep_intermediate}" == "FALSE" ]]; then
+    rm -r ${path_project_dir}/decontaminated/human/
+fi
 
 # renaming samples to end with '_trimmed_cleaned.fastq.gz'
 for f in ${path_output}/human_phix/*_trimmed.clean_*.fastq.gz; do

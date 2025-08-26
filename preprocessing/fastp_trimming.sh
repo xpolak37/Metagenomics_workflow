@@ -40,7 +40,8 @@ cd ${path_output}
 fastp --version >> ${path_project_dir}/run_info/tools.txt
 
 # FASTQC+MULTIQC for trimmed report
-fastqc *.fastq.gz -o ${path_output}/reports/ -quiet -t 20
+find ${path_output} -type f -name "*.fastq.gz" | parallel -j 10 "fastqc -o "${path_output}/reports/" -quiet -t 5"
+#fastqc *.fastq.gz -o ${path_output}/reports/ -quiet -t 20
 cd ${path_output}/reports/
 multiqc . --interactive
 ## track version

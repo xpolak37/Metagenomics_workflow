@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euo pipefail
+
 eval "$(conda shell.bash hook)"
 
 perform_quality_control=TRUE
@@ -6,9 +8,10 @@ perform_preprocessing=TRUE
 perform_taxprofiling=TRUE
 perform_metaphlan=FALSE
 perform_kraken=FALSE
+keep_intermediate=FALSE
 
 # DIRECTORIES
-input_dir="/home/povp/seq_data/WGS/sub_data_optimalizace"
+input_dir="/home/povp/seq_data/WGS/Illumina_IAB/"
 project_dir="/home/povp/Projects/kompas/"
 
 # CONDA ENVIRONMENTS
@@ -24,6 +27,7 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --input_dir) input_dir=$2; shift 2 ;;
         --project_dir) project_dir=$2; shift 2 ;;
+        --keep_intermediate) keep_intermediate=TRUE; shift ;;
         --skip_quality) perform_quality_control=FALSE; shift ;;
         --skip_preprocessing) perform_preprocessing=FALSE; shift ;;
         --skip_taxprofiling) perform_taxprofiling=FALSE; shift ;;
@@ -45,7 +49,7 @@ done
 export path_scripts="$(pwd)"
 
 # define the txt file for version tracking
-mkdir ${project_dir}/run_info/
+mkdir -p ${project_dir}/run_info/
 echo "# Tools and their versions throughout the run" > ${project_dir}/run_info/tools.txt
 
 # RUN the pipeline
@@ -77,7 +81,7 @@ if [[ "${perform_taxprofiling}" == "TRUE" ]]; then
     fi
 
     cd taxonomic_profiling
-    
+
     if [[ "${perform_metaphlan}" == "TRUE" ]]; then
         echo "Running Metaphlan4 for tax profiling..."
         bash metaphlan.sh
