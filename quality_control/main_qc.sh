@@ -48,10 +48,6 @@ awk 'NR>1 {print $NF*1000000}' multiqc_general_stats.txt | Rscript -e 'x <- scan
 ### track version
 R --version | head -n 1 >> ${path_project_dir}/run_info/tools.txt
 
-## LOW SEQUENCING DEPTH SAMPLES
-echo "SAMPLES BELOW 1M:" >> custom_summary.txt
-awk 'NR > 1 && $2 < 1000000' ${path_project_dir}/run_info/read_counts_summary.txt >> custom_summary.txt
-
 ## overrepresented sequences
 conda activate ${conda_env_dir_blast}
 
@@ -120,6 +116,11 @@ outfile=${path_project_dir}/run_info/read_counts_summary.txt
 # Header
 echo -e "Sample\tRaw\tTrimmed\tDecontaminated" > ${outfile}
 awk 'NR>1 {printf "%s\t%.0f\n", $1, $7*1000000}' ${path_output}/multiqc_data/multiqc_general_stats.txt >> ${outfile}
+
+## LOW SEQUENCING DEPTH SAMPLES
+echo "SAMPLES BELOW 1M:" >> custom_summary.txt
+awk 'NR > 1 && $2 < 1000000' ${path_project_dir}/run_info/read_counts_summary.txt >> custom_summary.txt
+
 
 # copy the summaries to the run_info file
 cp custom_summary.txt ${path_project_dir}/run_info/raw_custom_summary.txt

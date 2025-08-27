@@ -31,7 +31,7 @@ bracken
 nextflow
 
 ## ℹ️ About
-The workflow consists of multiple modules, all will be exececuted if not set otherwise:
+The workflow consists of multiple modules, all will be executed if not set otherwise:
 
 ---
 ### 🧹 **<u>1. Quality control</u>**
@@ -40,7 +40,7 @@ Runs **FastQC & MultiQC** to provide quality control report of all samples. Addi
 of adapter content, sequencing depth, overrepresented sequences and their BLAST hits, for overall summary of the run.
 
 
-**Input**: raw fastqcs  
+**Input**: raw fastqs  
 **Output**:
 - *quality_raw* folder with fastqc and multiqc data
 - *run_info* folder with:
@@ -65,8 +65,8 @@ fastp \
     --cut_tail --cut_front \
     --length_required 75 \
     --thread 5 \
-    --html ${path_output}/reports/{/}.html \
-    --json ${path_output}/reports/{/}.json"
+    --html /path/to/output/reports/sample.html \
+    --json /path/to/output/reports/sample.json
 ```
 
 Next, it runs **hostile** to remove human and phix contamination. As for human decontamination, it uses hostile's prepared indexes (human-t2t-hla-argos985-mycob140) that consist of T2T-CHM13v2.0 + IPD-IMGT/HLA v3.51 masked with 150mers for 985 FDA-ARGOS bacterial & 140 mycobacterial genomes. As for phix decontamination, it uses custom indexes of [phiX174](https://www.ncbi.nlm.nih.gov/nuccore/9626372), built by:
@@ -93,7 +93,7 @@ hostile clean \
 --output /path/to/project_dir/decontaminated/human_phix/
 ```
 
-**Input**: raw fastqcs  
+**Input**: raw fastqs  
 **Output**: 
 - *trimmed* folder - results of fastp
 - *decontaminated* folder:

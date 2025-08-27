@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# all credits goes to authors of metaphlan https://github.com/biobakery/MetaPhlAn
+# this script is the copy of merge_metaphlan_tables.py with the small edit of 
+# merging the raw counts alongside relative abundances
 
 import argparse
 import os

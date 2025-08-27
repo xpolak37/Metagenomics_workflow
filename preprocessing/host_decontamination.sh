@@ -35,7 +35,7 @@ mkdir ${path_output}/human_phix
 find ${path_input} -type f -name "*_R1_trimmed.fastq.gz" | sed 's/_R1_trimmed.fastq.gz//' | parallel -j 10 "hostile clean \
 --fastq1 {}_R1_trimmed.fastq.gz \
 --fastq2 {}_R2_trimmed.fastq.gz \
---index human-t2t-hla-argos985-mycob140
+--index human-t2t-hla-argos985-mycob140 \
 --output ${path_output}/human/ \
 --threads 5"
 
