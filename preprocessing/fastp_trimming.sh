@@ -2,13 +2,13 @@
 eval "$(conda shell.bash hook)"
 
 # variables for conda environment
-conda_env_dir_preprocessing="/home/povp/conda_envs/WGS_preprocessing"
-conda_env_dir_R="/home/povp/conda_envs/R_v4_env"
+conda_env_dir_preprocessing=$1
+conda_env_dir_R=$2
 
 # paths for data storage
-path_input="/home/povp/seq_data/WGS/Illumina_IAB"
-path_output="/home/povp/Projects/kompas/trimmed/"
-path_project_dir="/home/povp/Projects/kompas/"
+path_input=$3
+path_project_dir=$4
+path_output=${path_project_dir}/trimmed/
 
 # activate environment
 conda activate ${conda_env_dir_preprocessing}

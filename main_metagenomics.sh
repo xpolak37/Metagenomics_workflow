@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+#set -euo pipefail
 
 eval "$(conda shell.bash hook)"
 
@@ -11,8 +11,8 @@ perform_kraken=FALSE
 keep_intermediate=FALSE
 
 # DIRECTORIES
-input_dir="/home/povp/seq_data/WGS/Illumina_IAB/"
-project_dir="/home/povp/Projects/kompas/"
+input_dir="/home/povp/seq_data/WGS/biopsie_test/"
+project_dir="/home/povp/Projects/WGS_biopsie_test/"
 
 # CONDA ENVIRONMENTS
 quality_env="/home/povp/conda_envs/quality"
@@ -46,7 +46,22 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# export all variables to stay valid in all scripts
 export path_scripts="$(pwd)"
+export perform_quality_control
+export perform_preprocessing
+export perform_taxprofiling
+export perform_metaphlan
+export perform_kraken
+export keep_intermediate
+export input_dir
+export project_dir
+export quality_env 
+export blast_env
+export R_env
+export preprocessing_env
+export nextflow_env
+export metaphlan_env
 
 # define the txt file for version tracking
 mkdir -p ${project_dir}/run_info/
@@ -58,7 +73,7 @@ echo "# Tools and their versions throughout the run" > ${project_dir}/run_info/t
 if [[ "${perform_quality_control}" == "TRUE" ]]; then
     echo "Performing quality control..."
     cd quality_control
-    bash main_qc.sh
+    bash main_qc.sh ${quality_env} ${blast_env} ${R_env} ${input_dir} ${project_dir}
     echo "Done"
     cd ${path_scripts}
 fi
@@ -67,9 +82,9 @@ fi
 if [[ "${perform_preprocessing}" == "TRUE" ]]; then
     cd preprocessing
     echo "Performing trimming with fastp"
-    bash fastp_trimming.sh
+    bash fastp_trimming.sh ${preprocessing_env} ${R_env} ${input_dir} ${project_dir}
     echo "Performing host decontamination with hostile"
-    bash host_decontamination.sh
+    bash host_decontamination.sh ${preprocessing_env} ${project_dir}/trimmed/ ${project_dir}
     echo "Done"
     cd ${path_scripts}
 fi

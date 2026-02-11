@@ -2,14 +2,14 @@
 eval "$(conda shell.bash hook)"
 
 # variables for conda environment
-conda_env_dir_quality="/home/povp/conda_envs/quality"
-conda_env_dir_blast="/home/povp/conda_envs/blast_env"
-conda_env_dir_R="/home/povp/conda_envs/R_v4_env"
+conda_env_dir_quality=$1
+conda_env_dir_blast=$2
+conda_env_dir_R=$3
 
 # paths for data storage
-path_input="/home/povp/seq_data/WGS/Illumina_IAB"
-path_output="/home/povp/Projects/kompas/quality_raw/"
-path_project_dir="/home/povp/Projects/kompas/"
+path_input=$4
+path_project_dir=$5
+path_output=${path_project_dir}/quality_raw
 
 # activate conda environment 
 conda activate ${conda_env_dir_quality}

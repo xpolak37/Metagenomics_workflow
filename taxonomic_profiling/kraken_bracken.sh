@@ -6,7 +6,7 @@ conda_env_dir_kraken="nextflow_env"
 conda_env_dir_R="/home/povp/conda_envs/R_v4_env"
 
 # paths for data storage
-path_input="/home/povp/Projects/kompas/decontaminated/human_phix"
+path_input="/home/povp/Projects/kompas/decontaminated/human_phix/concatenated/"
 path_output="/home/povp/Projects/kompas/kraken/"
 path_project_dir="/home/povp/Projects/kompas/"
 

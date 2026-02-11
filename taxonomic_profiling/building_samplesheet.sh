@@ -14,7 +14,7 @@ out=${path_output}/samplesheet.csv
 echo "sample,run_accession,instrument_platform,fastq_1,fastq_2,fasta" > $out
 
 # add info for each sample
-for f1 in ${path_input}*_R1_trimmed_cleaned.fastq.gz; do
+for f1 in ${path_input}/*_R1_trimmed_cleaned.fastq.gz; do
     # Get R2 by replacing R1 with R2
     f2=${f1/_R1_/_R2_}
 
@@ -23,3 +23,4 @@ for f1 in ${path_input}*_R1_trimmed_cleaned.fastq.gz; do
 
     echo "${sample},${run_name},${platform},${f1},${f2}," >> $out
 done
+

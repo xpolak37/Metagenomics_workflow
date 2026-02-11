@@ -60,3 +60,11 @@ metaphlan --version >> ${path_project_dir}/run_info/tools.txt
 
 ## merge all samples into one table, save this table for counts as well as relative abundances
 bash metaphlan_postprocessing.sh
+
+# REMOVE intermediate RESULTS
+if [[ "${keep_intermediate}" == "FALSE" ]]; then
+    rm -r ${path_project_dir}/metaphlan/bowtie_output
+fi
+
+# compress the SAM files to BAM format
+ls ${path_output}/sam_output/*.sam | parallel -j 10 'samtools view -bS {} > {.}.bam && rm {}'

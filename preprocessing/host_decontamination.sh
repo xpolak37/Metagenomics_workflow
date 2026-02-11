@@ -1,15 +1,15 @@
 #!/bin/bash
 eval "$(conda shell.bash hook)"
 
-keep_intermediate=FALSE
+keep_intermediate=TRUE
 
 # variables for conda environment
-conda_env_dir_preprocessing="/home/povp/conda_envs/WGS_preprocessing"
+conda_env_dir_preprocessing=$1
 
 # paths for data storage
-path_input="/home/povp/Projects/kompas/trimmed/"
-path_output="/home/povp/Projects/kompas/decontaminated/"
-path_project_dir="/home/povp/Projects/kompas/"
+path_input=$2
+path_project_dir=$3
+path_output=${path_project_dir}/decontaminated/
 
 # path to phix bowtie indexed
 path_bowtie_phix="/home/povp/scripts/Metagenomics_workflow/preprocessing/bowtie2_indexes/phiX174"
