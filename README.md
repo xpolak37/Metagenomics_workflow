@@ -1,141 +1,266 @@
-# Metagenomics workflow
 
-This repository includes the bioinformatic workflow for metagenomics, all parameters are set to 
-work properly on specific data from our lab. Before any usage, please check if it fits your data as well. 
+# 🧬 Metagenomic Profiling Pipeline
 
-## 🚀 Quick usage
+A Nextflow pipeline for taxonomic profiling of shotgun metagenomic data. It performs quality control, optional host decontamination, and parallel taxonomic classification using MetaPhlAn 4 and/or Kraken2+Bracken, followed by unified abundance table generation and visualisation.
 
-Whole workflow can be executed by main_metagenomics.sh, where you have to change paths to conda environments and to your data
+**This repository includes a custom bioinformatic workflow for our lab (LPM IKEM, Prague, Czechia), all parameters are set to work properly on specific data from our lab. Before any usage, please check if it fits your data as well**
 
-```bash
-bash main_metagenomics.sh
-```
-
-### 📥 Inputs
-
-### 📤 Outputs
-
-### 📦 Requirements
-databases.csv
-adapters.fasta
-prebuilt metaphlan dbs
-prebuilt kraken dbs
-phix bowtie indexes
-fastqc
-multiqc
-hostile
-fastp
-metaphlan
-kraken
-bracken
-nextflow
-
-## ℹ️ About
-The workflow consists of multiple modules, all will be executed if not set otherwise:
-
----
-### 🧹 **<u>1. Quality control</u>**
-
-Runs **FastQC & MultiQC** to provide quality control report of all samples. Additionally, it creates a **QUICK SUMMARY** 
-of adapter content, sequencing depth, overrepresented sequences and their BLAST hits, for overall summary of the run.
-
-
-**Input**: raw fastqs  
-**Output**:
-- *quality_raw* folder with fastqc and multiqc data
-- *run_info* folder with:
-     - raw_custom_summary.txt - adapter content, sequencing depth, overrepresented sequences
-     - raw_multiqc_report.html - copy of the multiqc_report.html
-     - reads_count_summary.txt - read counts
----    
-
-
-### ⚙️ **<u>2. Preprocessing</u>**
-
-Runs **fastp** for preprocessing the raw fastq files. It performs quality filtering and trimming. Generally, it is executed with the default parameters with the minor changes. See the command below.
-
-```bash
-fastp \
-    -i sample_R1_001.fastq.gz \
-    -I sample_R2_001.fastq.gz \
-    -o /path/to/output/sample_R1_trimmed.fastq.gz \
-    -O /path/to/output/sample_R2_trimmed.fastq.gz \
-    --adapter_fasta adapters.fasta \
-    --trim_poly_g --trim_poly_x \
-    --cut_tail --cut_front \
-    --length_required 75 \
-    --thread 5 \
-    --html /path/to/output/reports/sample.html \
-    --json /path/to/output/reports/sample.json
-```
-
-Next, it runs **hostile** to remove human and phix contamination. As for human decontamination, it uses hostile's prepared indexes (human-t2t-hla-argos985-mycob140) that consist of T2T-CHM13v2.0 + IPD-IMGT/HLA v3.51 masked with 150mers for 985 FDA-ARGOS bacterial & 140 mycobacterial genomes. As for phix decontamination, it uses custom indexes of [phiX174](https://www.ncbi.nlm.nih.gov/nuccore/9626372), built by:
-
-```bash
-bowtie2-build phiX174.fasta phiX174
-```
-
-See the executed commands below. 
-
-```bash
-# human decontamination
-hostile clean \
---fastq1 sample_R1_trimmed.fastq.gz \
---fastq2 sample_R2_trimmed.fastq.gz \
---index human-t2t-hla-argos985-mycob140
---output /path/to/project_dir/decontaminated/human/
-
-# phix decontamination
-hostile clean \
---fastq1 sample_R1_trimmed.clean_1.fastq.gz \
---fastq2 sample_R2_trimmed.clean_2.fastq.gz \
---index path/to/prebuilt/phix_indexes \
---output /path/to/project_dir/decontaminated/human_phix/
-```
-
-**Input**: raw fastqs  
-**Output**: 
-- *trimmed* folder - results of fastp
-- *decontaminated* folder:
-    - *decontaminated/human/* folder - results of hostile's human removal
-    - *decontmainated/human_phix/* folder - results of hostile's phix removal
-- *run_info* folder with:
-     - read_counts_summary.txt - updated read counts track with <u>trimmed</u> and <u>decontaminated</u> columns. 
-     - trimmed_multiqc_report.html - copy of the multiqc_report.html containing fastp and fastqc reports
----
-
-### 🧬 **<u> 3. Taxonomic profiling</u>**
-
-Performs taxonomic profiling using one of two (or both) tools: **Metaphlan 4** and/or **Kraken+Bracken**.
-
-- **Metaphlan 4** uses a set of species-specific marker genes to identify and quantify microbial taxa. MetaPhlAn 4 dramatically expands its database by incorporating thousands of new species-level genome bins (SGBs), including both known (kSGBs) and unknown (uSGBs) taxa.
-
-- **Kraken 2** assigns taxonomic labels by matching k-mers from reads to reference genomes using an exact-match k-mer hash strategy. **Bracken** builds on Kraken results to re-estimate species (or genus) abundances more accurately using a Bayesian method.
-
-*Which to use*:
-
-This pipeline is designed to offer two separate approaches that are independent of each other. For an objective selection of a suitable tool, see some of the benchmark studies, for example [LEMMI](https://lemmi.ezlab.org/). When not specified by user, the pipeline executes Metaphlan 4.  
-
-We offer a brief overview and comparison of Kraken and Metaphlan (generated by Chatgpt 5) below.
-
-
-***Summary Comparison***
-
-| Feature                  | MetaPhlAn 4                                              | Kraken + Bracken                                         |
-|--------------------------|----------------------------------------------------------|-----------------------------------------------------------|
-| **Methodology**          | Marker gene mapping (phylogenetically curated)           | Whole-read k-mer matching with abundance re-estimation    |
-| **Accuracy**             | High precision, balanced recall, very low false positives | High recall, but many low-abundance false positives       |
-| **Abundance Estimation** | Accurate, especially for known and unknown SGBs          | Accurate when filtered, but may overestimate rare taxa     |
-| **Speed / Resources**    | Moderate speed; depends on mapping coverage              | Extremely fast and resource-efficient                      |
-| **Database Coverage**    | Extensive with many uncharacterized species              | Dependent on database; may miss underrepresented genomes   |
-| **Best Use**             | When accuracy and specificity matter (e.g., marker-based profiling in complex samples) | Rapid, broad surveys where speed is crucial or followed by filtering |
+## Table of Contents
+- 🧬 [Overview](#overview)
+- 🚀 [Quick Usage](#quick-usage)
+- 📦 [Requirements](#requirements)
+- 🛠️ [Installation](#installation)
+- 🔬 [Pipeline Description](#pipeline-description)
+- 📥 [Inputs](#inputs)
+- 📤 [Outputs](#outputs)
+- 📚 [References](#references)
 
 ---
 
-### 🔬 **4. Functional profiling**     
+## Overview
 
-👀 Comming soon 👀
+The pipeline takes paired-end FASTQ files and a samplesheet as input and produces:
+
+- Quality-controlled and trimmed reads
+- Taxonomic abundance profiles (MetaPhlAn 4 and/or Kraken2+Bracken)
+- Standardised, merged abundance tables (MetaStandard format)
+- Stacked bar charts of community composition
+- Optional strain-level phylogenetic analysis (StrainPhlAn)
+- Optional mock community quality control with deviation metrics
+
+---
+
+## Quick Usage
+
+```bash
+nextflow run main.nf \
+  --input samplesheet.csv \
+  --outdir results/ 
+```
+
+For a fast test run using subsampled reads:
+
+```bash
+nextflow run main.nf \
+  --input test/test_samplesheet.csv \
+  --outdir results/ \
+```
+
+With host decontamination and Kraken2+Bracken enabled:
+
+```bash
+nextflow run main.nf \
+  --input samplesheet.csv \
+  --outdir results/ \
+  --host_genome_index /path/to/human_index \
+  --bowtie_phix_index /path/to/phix_index \
+  --kraken_profiling \
+  --database_cache_dir /path/to/db
+```
+
+---
+
+## Requirements
+
+User needs conda environment with Nextflow & Singularity installed. Everything else needed for the pipeline execution can be prepared with the ```setup_pipeline.sh``` script.
+
+### Software
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| [Nextflow](https://www.nextflow.io/) | ≥ 23.04 | Workflow manager |
+| [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) | any | Read quality assessment |
+| [fastp](https://github.com/OpenGene/fastp) | any | Read trimming and filtering |
+| [seqtk](https://github.com/lh3/seqtk) | any | Read subsampling (`--quick` mode) |
+| [Bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/) | any | Host and PhiX decontamination |
+| [MetaPhlAn 4](https://github.com/biobakery/MetaPhlAn) | 4.x | Species-level profiling |
+| [Kraken2](https://github.com/DerrickWood/kraken2) | any | k-mer based classification (optional) |
+| [Bracken](https://github.com/jenniferlu717/Bracken) | any | Abundance re-estimation (optional) |
+| [MultiQC](https://multiqc.info/) | any | QC report aggregation |
+| Python | ≥ 3.8 | MetaStandard and plotting scripts |
+
+### Reference databases
+
+| Database | Used by 
+|----------|---------|
+| MetaPhlAn 4 DB (`mpa_vJan25_CHOCOPhlAnSGB_202503`) | MetaPhlAn 4, StrainPhlAn |
+| Human reference index | Bowtie2 host removal | 
+| PhiX index | Bowtie2 PhiX removal |
+| Kraken2 database | Kraken2 + Bracken | 
+
+---
+
+## Installation
+
+**1. Clone the repository**
+
+```bash
+git clone https://github.com/xpolak37/Metagenomics_workflow.git
+cd Metagenomics_workflow
+```
+
+**2. Install Nextflow & Singularity**
+
+```bash
+conda install -c bioconda nextflow
+conda install conda-forge::singularity
+```
+
+**3. Install pipeline dependencies**
+
+Via ```setup_pipeline.sh``` script:
+
+```bash
+bash setup_pipeline.sh
+
+```
 
 
+## Pipeline Description
+
+```mermaid
+flowchart TB
+    A["Input samplesheet"] --> B["FastQC on raw reads"]
+    B --> Z
+    A --> QK{"--quick?"}
+    QK -- yes --> SS["Subsampling\nseqtk sample"]
+    QK -- no --> C["Fastp quality trimming"] 
+    SS --> C
+    C --> D["Host removal (human + PhiX)\nBowtie2"]
+    D --> E["FastQC on clean reads"]
+    E --> Z["MultiQC"]
+    D --> F["Kraken2"]
+    D --> G["Metaphlan4"]
+    G --> H["Strainphlan"]
+    F --> I["Bracken"]
+    G --> Y["MetaStandard"]
+    I --> Y["MetaStandard"]
+
+```
+
+### Steps in detail
+
+**Quality control (FastQC + fastp)**
+Raw reads are assessed with FastQC before and after trimming. fastp handles adapter removal, quality-based filtering, polyG/X trimming, deduplication, and low-complexity filtering. Parameters are fully configurable (see [Inputs](#inputs)).
+
+**Subsampling (seqtk) — optional**
+When `--quick` is set, reads are subsampled to `--quick_depth` reads per sample before trimming. Useful for rapid testing.
+
+**Host decontamination**
+Reads mapping to the human reference genome (T2T-HLA + ARGOS + mycobacterial sequences) are removed with Bowtie2, followed by a second pass to remove PhiX174 spike-in reads. Reads are then re-paired and synchronised with fastp.
+
+**MetaPhlAn 4 profiling**
+Clean reads are profiled with MetaPhlAn 4 against the CHOCOPhlAn SGB database. Eukaryotes, bacteria, or archaea can be selectively excluded. If `--metaphlan_db` is not supplied, the database is automatically downloaded and cached.
+
+**Strain-level profiling (StrainPhlAn) — optional**
+When `--metaphlan_strain` is set and a target SGB clade is specified via `--strainphlan_sgb`, StrainPhlAn reconstructs strain-level phylogenies for that clade across all samples.
+
+**Kraken2 + Bracken profiling — optional**
+When `--kraken_profiling` is set, reads are classified with Kraken2 and abundance estimates are refined at species level with Bracken.
+
+**MetaStandard — profile unification**
+Per-sample MetaPhlAn 4 (and optionally Bracken) profiles are merged into a single wide-format TSV table (taxa × samples) with normalised relative abundances. Sample names are derived from the filename prefix. Unclassified reads are aggregated into a standardised `k__Unclassified` entry.
+
+**Visualisation**
+For each MetaStandard TSV, the pipeline generates a stacked bar chart (top N taxa by mean abundance, remainder collapsed to "Other") and a clustered heatmap.
+
+**MultiQC**
+QC metrics from FastQC (raw and clean) and fastp are aggregated into a single MultiQC HTML report.
+
+---
+
+## Inputs
+
+### Samplesheet
+
+A CSV file with three columns — no spaces, no extra headers:
+
+```csv
+sample,read1,read2
+ERR001,/data/ERR001_R1.fastq.gz,/data/ERR001_R2.fastq.gz
+ERR002,/data/ERR002_R1.fastq.gz,/data/ERR002_R2.fastq.gz
+Mock1,/data/Mock1_R1.fastq.gz,/data/Mock1_R2.fastq.gz
+```
+
+| Column | Description |
+|--------|-------------|
+| `sample` | Unique sample identifier |
+| `read1` | Absolute path to forward reads (gzipped FASTQ) |
+| `read2` | Absolute path to reverse reads (gzipped FASTQ) |
+
+### Pipeline parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--input` | required | Path to samplesheet CSV |
+| `--outdir` | required | Output directory |
+| `--run_id` | `run01` | Label appended to output filenames |
+| `--tax_level` | `species` | Taxonomic level for MetaStandard output |
+| `--quick` | `false` | Enable subsampling before trimming |
+| `--quick_depth` | — | Number of reads to subsample per sample |
+| `--host_decontamination` | `false` | Enable host + PhiX removal |
+| `--host_genome_index` | — | Path to Bowtie2 human genome index directory |
+| `--bowtie_phix_index` | — | Path to Bowtie2 PhiX index directory |
+| `--kraken_profiling` | `false` | Enable Kraken2 + Bracken profiling |
+| `--database_cache_dir` | — | Directory for cached databases (Kraken2, MetaPhlAn 4) |
+| `--metaphlan_db` | `null` | Path to existing MetaPhlAn 4 database (auto-downloaded if unset) |
+| `--metaphlan_strain` | `false` | Enable StrainPhlAn strain-level analysis |
+| `--strainphlan_sgb` | — | Target SGB clade for StrainPhlAn (e.g. `SGB1877`) |
+| `--metastandard_top_n` | `10` | Top N taxa shown in bar chart |
+
+**fastp parameters** (key options — see `modules/fastp.nf` for the full list):
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--fastp_qualified_quality_phred` | — | Minimum base quality score |
+| `--fastp_unqualified_percent_limit` | — | Max % of bases below quality threshold |
+| `--fastp_length_required` | — | Minimum read length to keep |
+| `--fastp_length_limit` | — | Maximum read length |
+| `--fastp_detect_adapter_for_pe` | `false` | Auto-detect adapters for paired-end data |
+| `--fastp_dedup` | `false` | Remove duplicate reads |
+| `--fastp_low_complexity_filter` | `false` | Filter low-complexity reads |
+| `--fastp_correction` | `false` | Enable overlap-based base correction |
+| `--fastp_trim_poly_g` | `false` | Trim polyG tails (NextSeq/NovaSeq) |
+| `--fastp_extra_args` | `""` | Any additional fastp arguments |
+
+---
+
+## Outputs
+
+```
+results/
+├── fastqc_raw/             # FastQC reports on raw reads
+├── fastp/                  # Trimmed reads + fastp JSON/HTML reports
+├── fastqc_clean/           # FastQC reports on trimmed reads
+├── hostile/                # Decontaminated reads (if --host_decontamination)
+├── metaphlan4/          # Per-sample MetaPhlAn 4 profiles (.txt)
+├── strainphlan/         # StrainPhlAn output (if --metaphlan_strain)
+├── kraken2/             # Kraken2 classification files (if --kraken_profiling)
+├── bracken/             # Bracken abundance files (if --kraken_profiling)
+├── metastandard/        # Merged abundance tables (TSV)
+├── metastandard_plots/     # Bar charts and heatmaps (PNG)
+└── multiqc/                # Aggregated MultiQC report
+```
+
+### Key output files
+
+| File | Description |
+|------|-------------|
+| `metastandard/metaphlan4_<run_id>_species.tsv` | Merged MetaPhlAn 4 relative abundance table (taxa × samples) |
+| `metastandard/bracken_<run_id>_species.tsv` | Merged Bracken relative abundance table (if enabled) |
+| `metastandard_plots/*_barplot.png` | Stacked bar chart — top N taxa per sample |
+| `multiqc/multiqc_report.html` | Aggregated QC report |
 
 
+## References
+
+- **fastp**: Chen S et al. (2018). fastp: an ultra-fast all-in-one FASTQ preprocessor. *Bioinformatics*, 34(17):i884–i890. https://doi.org/10.1093/bioinformatics/bty560
+- **FastQC**: Andrews S. (2010). FastQC: A Quality Control tool for High Throughput Sequence Data. https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+- **MultiQC**: Ewels P et al. (2016). MultiQC: summarize analysis results for multiple tools and samples in a single report. *Bioinformatics*, 32(19):3047–3048. https://doi.org/10.1093/bioinformatics/btw354
+- **MetaPhlAn 4**: Blanco-Míguez A et al. (2023). Extending and improving metagenomic taxonomic profiling with uncharacterized species using MetaPhlAn 4. *Nature Biotechnology*, 41:1633–1644. https://doi.org/10.1038/s41587-023-01688-w
+- **StrainPhlAn**: Beghini F et al. (2021). Integrating taxonomic, functional, and strain-level profiling of diverse microbial communities with bioBakery 3. *eLife*, 10:e65088. https://doi.org/10.7554/eLife.65088
+- **Kraken2**: Wood DE, Lu J, Langmead B. (2019). Improved metagenomic analysis with Kraken 2. *Genome Biology*, 20:257. https://doi.org/10.1186/s13059-019-1891-0
+- **Bracken**: Lu J et al. (2017). Bracken: estimating species abundance in metagenomics data. *PeerJ Computer Science*, 3:e104. https://doi.org/10.7717/peerj-cs.104
+- **Bowtie2**: Langmead B, Salzberg SL. (2012). Fast gapped-read alignment with Bowtie 2. *Nature Methods*, 9:357–359. https://doi.org/10.1038/nmeth.1923
+- **seqtk**: Li H. (2013). seqtk: a fast and lightweight tool for processing FASTA or FASTQ sequences. https://github.com/lh3/seqtk
+- **Nextflow**: Di Tommaso P et al. (2017). Nextflow enables reproducible computational workflows. *Nature Biotechnology*, 35:316–319. https://doi.org/10.1038/nbt.3820
